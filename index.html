@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>性格特質小測驗</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666666;
+        }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Helvetica Neue', Arial, 'LiHei Pro', 'Microsoft JhengHei', sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            line-height: 1.6; 
+            padding: 20px; 
+            margin: 0;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: var(--card-bg); 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 16px rgba(0,0,0,0.05); 
+        }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 10px; }
+        .intro { 
+            background: #e8f4f8; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin-bottom: 30px; 
+            font-size: 0.95em; 
+            color: #444;
+            border-left: 5px solid var(--primary-color);
+        }
+        .intro p { margin: 5px 0; }
+        .note { font-size: 0.85em; color: #888; margin-top: 10px; }
+        
+        .question-block { 
+            margin-bottom: 25px; 
+            padding: 20px; 
+            background: #fafafa;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+        .question-text { 
+            font-weight: bold; 
+            font-size: 1.1em;
+            margin-bottom: 15px; 
+            color: #2c3e50;
+        }
+        .options-container {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            position: relative;
+        }
+        /* Line behind the radio buttons to make it look like a scale */
+        .options-container::before {
+            content: '';
+            position: absolute;
+            top: 14px;
+            left: 5%;
+            right: 5%;
+            height: 2px;
+            background: #ddd;
+            z-index: 1;
+        }
+        .option-label { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            cursor: pointer; 
+            font-size: 0.85em; 
+            color: var(--text-muted);
+            width: 20%;
+            z-index: 2;
+        }
+        .option-label input[type="radio"] { 
+            margin-bottom: 8px; 
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary-color);
+            cursor: pointer;
+        }
+        .option-text { text-align: center; padding: 0 5px; line-height: 1.2; }
+        
+        .error-message {
+            color: #e74c3c;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        button { 
+            display: block; 
+            width: 100%; 
+            padding: 16px; 
+            background: var(--primary-color); 
+            color: #fff; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 1.2em; 
+            font-weight: bold;
+            cursor: pointer; 
+            margin-top: 30px; 
+            transition: background 0.3s, transform 0.1s; 
+            box-shadow: 0 4px 6px rgba(74, 144, 226, 0.3);
+        }
+        button:hover { background: #357abd; }
+        button:active { transform: translateY(2px); }
+        
+        #result-section { 
+            display: none; 
+            margin-top: 40px; 
+            border-top: 2px dashed #ccc; 
+            padding-top: 30px; 
+            animation: fadeIn 0.8s ease-in-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .result-title { text-align: center; color: #2c3e50; font-size: 1.8em; margin-bottom: 20px; }
+        .chart-container { 
+            position: relative; 
+            margin: 0 auto 30px auto; 
+            height: 400px; 
+            width: 100%; 
+            max-width: 500px; 
+        }
+        
+        .analysis-item { 
+            margin-bottom: 20px; 
+            padding: 20px; 
+            background: #fff; 
+            border-left: 5px solid var(--primary-color); 
+            border-radius: 8px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .analysis-title { 
+            font-weight: bold; 
+            font-size: 1.2em;
+            color: #2c3e50; 
+        }
+        .score-badge {
+            background: #e8f4f8;
+            color: var(--primary-color);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .analysis-desc { color: #444; }
+
+        @media (max-width: 600px) {
+            .options-container::before { display: none; }
+            .option-text { font-size: 0.8em; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>性格特質小測驗</h1>
+    
+    <div class="intro">
+        <p>這是一份用來了解個人特質的問卷，沒有標準答案。請依照你<strong>最近一個月</strong>最常出現的狀態，直覺作答即可。</p>
+        <p class="note">(註：本測驗題目節錄自《測驗學刊》中文版簡式「五大人格量表」BFI的發展（李仁豪、鍾芯瑜，2020），僅供本次作業模擬施測與學術討論使用。)</p>
+    </div>
+
+    <form id="quiz-form">
+        <div id="questions-container"></div>
+        <div id="error-msg" class="error-message">尚有題目未作答，請確認所有題目皆已填寫！</div>
+        <button type="submit">送出並查看分析結果</button>
+    </form>
+
+    <div id="result-section">
+        <h2 class="result-title">你的性格特質分析</h2>
+        <div class="chart-container">
+            <canvas id="radarChart"></canvas>
+        </div>
+        <div id="analysis-content"></div>
+    </div>
+</div>
+
+<script>
+    const questionsData = [
+        "1. 充滿活力", "2. 有非常多熱情", "3. 喜歡外出、好社交的",
+        "4. 樂於助人且無私的", "5. 有寬容本質", "6. 幾乎對所有人體貼且仁慈的",
+        "7. 可信賴的工作者", "8. 會堅持到工作完成", "9. 做事有效率的",
+        "10. 擔心很多的", "11. 情緒不穩定的", "12. 容易感到緊張的",
+        "13. 具有生動想像力", "14. 有創造力的", "15. 重視藝術及美學經驗"
+    ];
+
+    const traits = [
+        { id: 'E', name: '外向性', indices: [0, 1, 2], color: 'rgba(255, 99, 132, 1)', bg: 'rgba(255, 99, 132, 0.2)',
+          high: '你充滿活力，喜歡與人互動，在社交場合中常常是帶來熱情與能量的角色。你喜歡向外探索，並能從人群中獲得動力。',
+          low: '你偏好安靜、獨立的環境。這不代表你不擅社交，而是你更需要獨處的時間來為自己充電，享受內在的平靜。' },
+        { id: 'A', name: '親和性', indices: [3, 4, 5], color: 'rgba(75, 192, 192, 1)', bg: 'rgba(75, 192, 192, 0.2)',
+          high: '你有一顆溫暖、體貼的心，樂於助人且富有同理心。在團體中，你通常是個很好的合作夥伴，高度重視人際間的和諧。',
+          low: '你在人際互動中比較客觀、有主見。比起迎合他人，你更重視事情的合理性與效率，有時會展現出較強的競爭力。' },
+        { id: 'C', name: '盡責性', indices: [6, 7, 8], color: 'rgba(54, 162, 235, 1)', bg: 'rgba(54, 162, 235, 0.2)',
+          high: '你做事井然有序、自律且有目標感。你是大家眼中可靠的對象，面對任務總能堅持到底並高效率完成。',
+          low: '你喜歡保持彈性，不愛受到嚴格計畫的拘束。比起按部就班，你更擅長在變動中隨機應變，享受隨性自在的生活步調。' },
+        { id: 'N', name: '神經質', indices: [9, 10, 11], color: 'rgba(153, 102, 255, 1)', bg: 'rgba(153, 102, 255, 0.2)',
+          high: '你的情緒感受力較強，對周遭環境的變化比較敏感，因此較容易感到壓力。但這也代表你具有很高的危機意識與細膩的覺察力。',
+          low: '你的情緒相當穩定，面對壓力和挑戰時能保持冷靜與從容。你不容易陷入焦慮，能以平穩的心態面對生活中的各種起伏。' },
+        { id: 'O', name: '開放性', indices: [12, 13, 14], color: 'rgba(255, 159, 64, 1)', bg: 'rgba(255, 159, 64, 0.2)',
+          high: '你擁有豐富的想像力與創造力，對藝術、美學及新奇事物充滿好奇。你勇於跳脫傳統框架，喜歡探索未知的領域。',
+          low: '你比較務實、腳踏實地，傾向於依靠過去的經驗與傳統的方法來解決問題。比起抽象的概念，你更重視具體且實用的事物。' }
+    ];
+
+    const scaleLabels = ["非常不精確", "有些不精確", "普通", "有些精確", "非常精確"];
+
+    // Render questions
+    const qContainer = document.getElementById('questions-container');
+    questionsData.forEach((q, index) => {
+        let html = `<div class="question-block">
+                        <div class="question-text">${q}</div>
+                        <div class="options-container">`;
+        
+        for(let i=1; i<=5; i++) {
+            html += `
+                <label class="option-label">
+                    <input type="radio" name="q${index}" value="${i}" required>
+                    <span class="option-text">${i}分<br><small>${scaleLabels[i-1]}</small></span>
+                </label>`;
+        }
+        html += `</div></div>`;
+        qContainer.innerHTML += html;
+    });
+
+    let myChart = null;
+
+    document.getElementById('quiz-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        document.getElementById('error-msg').style.display = 'none';
+
+        // Check if all questions are answered
+        let allAnswered = true;
+        let scores = [];
+        for(let i=0; i<15; i++) {
+            const selected = document.querySelector(`input[name="q${i}"]:checked`);
+            if(!selected) {
+                allAnswered = false;
+                break;
+            }
+            scores.push(parseInt(selected.value));
+        }
+
+        if(!allAnswered) {
+            document.getElementById('error-msg').style.display = 'block';
+            window.scrollTo({ top: document.getElementById('error-msg').offsetTop - 100, behavior: 'smooth' });
+            return;
+        }
+
+        // Calculate trait scores
+        let traitScores = traits.map(trait => {
+            let sum = trait.indices.reduce((acc, idx) => acc + scores[idx], 0);
+            return { ...trait, score: sum };
+        });
+
+        // Hide form, show results
+        document.getElementById('quiz-form').style.display = 'none';
+        const resultSection = document.getElementById('result-section');
+        resultSection.style.display = 'block';
+        window.scrollTo({ top: resultSection.offsetTop - 20, behavior: 'smooth' });
+
+        // Render Chart
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        if(myChart) myChart.destroy();
+
+        myChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: traitScores.map(t => t.name),
+                datasets: [{
+                    label: '你的性格維度分數 (滿分15)',
+                    data: traitScores.map(t => t.score),
+                    backgroundColor: 'rgba(74, 144, 226, 0.4)',
+                    borderColor: 'rgba(74, 144, 226, 1)',
+                    pointBackgroundColor: 'rgba(74, 144, 226, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(74, 144, 226, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+                        grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                        pointLabels: { font: { size: 14, family: "'Helvetica Neue', 'Microsoft JhengHei', sans-serif" }, color: '#333' },
+                        min: 0,
+                        max: 15,
+                        ticks: { stepSize: 3, display: false }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // Render Text Analysis
+        const analysisContainer = document.getElementById('analysis-content');
+        analysisContainer.innerHTML = '';
+        traitScores.forEach(t => {
+            let level = t.score >= 11 ? '高分' : '中低分';
+            let desc = t.score >= 11 ? t.high : t.low;
+            
+            analysisContainer.innerHTML += `
+                <div class="analysis-item" style="border-left-color: ${t.color}">
+                    <div class="analysis-header">
+                        <div class="analysis-title">${t.name}</div>
+                        <div class="score-badge">得分：${t.score} / 15 (${level})</div>
+                    </div>
+                    <div class="analysis-desc">${desc}</div>
+                </div>
+            `;
+        });
+    });
+</script>
+
+</body>
+</html>
